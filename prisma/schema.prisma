@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Connector {
+  id           String    @id @default(cuid())
+  provider     String    @unique
+  displayName  String
+  status       String
+  lastSyncedAt DateTime?
+  syncRuns     SyncRun[]
+  evidence     EvidenceItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ComplianceControl {
+  id              String         @id @default(cuid())
+  code            String         @unique
+  name            String
+  description     String
+  category        String
+  currentStatus   String
+  lastEvaluatedAt DateTime
+  evidenceItems   EvidenceItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EvidenceItem {
+  id          String              @id @default(cuid())
+  connectorId String
+  connector   Connector           @relation(fields: [connectorId], references: [id])
+  controls    ComplianceControl[]
+  title       String
+  description String
+  status      String
+  collectedAt DateTime
+  expiresAt   DateTime?
+  metadata    Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([connectorId])
+  @@index([collectedAt])
+}
+
+model Employee {
+  id              String                  @id @default(cuid())
+  name            String
+  email           String                  @unique
+  employmentStatus String
+  sourceSystem    String
+  hasAwsAccess    Boolean
+  hasAzureAccess  Boolean
+  hasGithubAccess Boolean
+  startDate       DateTime
+  terminationDate DateTime?
+  acknowledgements PolicyAcknowledgement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([employmentStatus])
+  @@index([sourceSystem])
+}
+
+model Policy {
+  id               String                  @id @default(cuid())
+  name             String
+  version          String
+  description      String
+  category         String
+  requiresAcknowledgement Boolean
+  acknowledgements PolicyAcknowledgement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, version])
+}
+
+model PolicyAcknowledgement {
+  id             String   @id @default(cuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  policyId       String
+  policy         Policy   @relation(fields: [policyId], references: [id])
+  policyVersion  String
+  acknowledgedAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, policyId, policyVersion])
+  @@index([policyId])
+}
+
+model RiskAssessment {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  category       String
+  likelihood     String
+  impact         String
+  severity       String
+  owner          String
+  mitigation     String?
+  status         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SyncRun {
+  id          String    @id @default(cuid())
+  connectorId String
+  connector   Connector @relation(fields: [connectorId], references: [id])
+  provider    String
+  status      String
+  startedAt   DateTime
+  completedAt DateTime?
+  error       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([connectorId])
+  @@index([provider])
+  @@index([startedAt])
+}

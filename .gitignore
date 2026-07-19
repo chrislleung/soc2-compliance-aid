@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local SQLite artifacts
+prisma/dev.db
+prisma/dev.db-journal
+prisma/dev.db-shm
+prisma/dev.db-wal
+
+# Keep the environment template
+!.env.example
+
+# Keep the generated Next.js TypeScript declaration
+!next-env.d.ts

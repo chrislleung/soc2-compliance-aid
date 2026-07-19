@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { getAuditorExportUrl } from "@/lib/client/api";
 import { ApiRequestError } from "@/lib/client/http";
+import { filenameFromUrl } from "@/lib/client/derive";
+
+const FALLBACK_FILENAME = "evidence-package.zip";
 
 export function AuditorExportButton({
   onExported,
 }: {
-  onExported: (url: string) => void;
+  onExported: (result: { url: string; filename: string }) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,13 +20,22 @@ export function AuditorExportButton({
     setError(null);
     try {
       const url = await getAuditorExportUrl();
-      onExported(url);
-      window.open(url, "_blank", "noopener,noreferrer");
+      const filename = filenameFromUrl(url) ?? FALLBACK_FILENAME;
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      onExported({ url, filename });
     } catch (err) {
       setError(
         err instanceof ApiRequestError
           ? err.message
-          : "Could not generate the evidence package.",
+          : "Could not download the evidence package. Try again in a moment.",
       );
     } finally {
       setPending(false);
@@ -40,7 +52,11 @@ export function AuditorExportButton({
       >
         {pending ? "Preparing package…" : "Download Evidence Package"}
       </button>
-      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+      {error && (
+        <span role="alert" className="text-xs text-red-600 dark:text-red-400">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

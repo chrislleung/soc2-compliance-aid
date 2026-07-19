@@ -12,8 +12,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ConnectorSyncButton } from "@/components/ConnectorSyncButton";
 import { useApiResource } from "@/lib/client/useApiResource";
 import { getControls, getDashboard, getEvidence, getPolicies } from "@/lib/client/api";
-import { controlsRequiringAttention, policyCompletionPercent, recentEvidence } from "@/lib/client/derive";
-import { formatDate, formatPercent } from "@/lib/client/format";
+import { controlsRequiringAttention, policyCompletionPercent, recentEvidence, totalControlCount } from "@/lib/client/derive";
+import { formatDate, formatPercentOrDash } from "@/lib/client/format";
 import type { Connector, ConnectorProvider, Control, DashboardSummary, Evidence, Policy } from "@/lib/contracts";
 
 const CONNECTOR_PROVIDERS: { provider: ConnectorProvider; label: string }[] = [
@@ -78,7 +78,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               <SummaryCard
                 label="Total Controls"
-                value={String(totalControls(dashboard.data))}
+                value={String(totalControlCount(dashboard.data.controlCountsByStatus))}
               />
               <SummaryCard
                 label="Passing Controls"
@@ -95,9 +95,7 @@ export default function DashboardPage() {
               <SummaryCard
                 label="Policy Completion"
                 value={
-                  policies.data
-                    ? formatCompletion(policyCompletionPercent(policies.data))
-                    : "—"
+                  policies.data ? formatPercentOrDash(policyCompletionPercent(policies.data)) : "—"
                 }
               />
               <SummaryCard
@@ -162,12 +160,4 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-}
-
-function totalControls(data: DashboardSummary): number {
-  return Object.values(data.controlCountsByStatus).reduce((sum, count) => sum + count, 0);
-}
-
-function formatCompletion(percent: number | null): string {
-  return percent === null ? "—" : formatPercent(percent);
 }

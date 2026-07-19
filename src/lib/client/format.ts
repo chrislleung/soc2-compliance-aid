@@ -23,6 +23,10 @@ export function formatPercent(value: number): string {
   return `${Math.round(value)}%`;
 }
 
+export function formatPercentOrDash(value: number | null): string {
+  return value === null ? "—" : formatPercent(value);
+}
+
 const CONTROL_STATUS_LABELS: Record<ControlStatus, string> = {
   compliant: "Compliant",
   at_risk: "At Risk",

@@ -1,4 +1,9 @@
-import type { ConnectorProvider, Control, Employee, Evidence, EvidenceStatus, OffboardingIssue, Policy, RiskImpact, RiskLikelihood } from "@/lib/contracts";
+import type { ConnectorProvider, Connector, Control, ControlStatus, Employee, Evidence, EvidenceStatus, OffboardingIssue, Policy, RiskImpact, RiskLikelihood } from "@/lib/contracts";
+
+/** Sum of every control-status bucket, for a "total controls" figure. */
+export function totalControlCount(counts: Record<ControlStatus, number>): number {
+  return Object.values(counts).reduce((sum, count) => sum + count, 0);
+}
 
 /** A single count-over-total percentage. Returns null when total is 0, so callers can render "—". */
 export function completionPercent(count: number, total: number): number | null {
@@ -148,4 +153,29 @@ export function validateRiskForm(values: RiskFormValues): RiskFormErrors {
   if (!values.description.trim()) errors.description = "Description is required.";
   if (!values.owner.trim()) errors.owner = "Owner is required.";
   return errors;
+}
+
+/** The most recent sync across all connectors, or null if none have synced yet. */
+export function lastConnectorSync(connectors: Connector[]): string | null {
+  const timestamps = connectors
+    .map((connector) => connector.lastSyncedAt)
+    .filter((value): value is string => value !== null);
+  if (timestamps.length === 0) return null;
+  return timestamps.reduce((latest, current) => (current > latest ? current : latest));
+}
+
+/**
+ * Best-effort filename derived from a download URL's last path segment,
+ * for use as an anchor's `download` attribute. Returns null when nothing
+ * usable can be extracted, so callers can fall back to a generic name.
+ */
+export function filenameFromUrl(url: string): string | null {
+  const withoutQueryOrHash = url.split("?")[0].split("#")[0];
+  const segment = withoutQueryOrHash.split("/").filter(Boolean).pop();
+  if (!segment) return null;
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
 }

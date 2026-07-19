@@ -3,119 +3,121 @@
 import { useCallback, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { LoadingState } from "@/components/LoadingState";
+import { SummaryCard } from "@/components/SummaryCard";
+import { ControlTable } from "@/components/ControlTable";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 import { AuditorExportButton } from "@/components/AuditorExportButton";
 import { useApiResource } from "@/lib/client/useApiResource";
-import { getControls, getEvidence } from "@/lib/client/api";
-import { controlStatusLabel, controlStatusTone, formatDate } from "@/lib/client/format";
-import type { Control, Evidence } from "@/lib/contracts";
+import { getControls, getDashboard, getEvidence, getPolicies } from "@/lib/client/api";
+import { lastConnectorSync, policyCompletionPercent, totalControlCount } from "@/lib/client/derive";
+import { formatDate, formatPercentOrDash } from "@/lib/client/format";
+import type { Control, DashboardSummary, Evidence, Policy } from "@/lib/contracts";
 
 export default function AuditorPage() {
+  const dashboardFetcher = useCallback(() => getDashboard(), []);
   const controlsFetcher = useCallback(() => getControls(), []);
+  const policiesFetcher = useCallback(() => getPolicies(), []);
   const evidenceFetcher = useCallback(() => getEvidence(), []);
-  const controls = useApiResource<Control[]>(controlsFetcher);
-  const evidence = useApiResource<Evidence[]>(evidenceFetcher);
-  const [exportUrl, setExportUrl] = useState<string | null>(null);
 
-  const loading = controls.loading || evidence.loading;
-  const error = controls.error ?? evidence.error;
+  const dashboard = useApiResource<DashboardSummary>(dashboardFetcher);
+  const controls = useApiResource<Control[]>(controlsFetcher);
+  const policies = useApiResource<Policy[]>(policiesFetcher);
+  const evidence = useApiResource<Evidence[]>(evidenceFetcher);
+
+  const [exported, setExported] = useState<{ url: string; filename: string } | null>(null);
+
+  const loading = dashboard.loading || controls.loading || policies.loading || evidence.loading;
+  const error = dashboard.error ?? controls.error ?? policies.error ?? evidence.error;
+  const retryAll = () => {
+    dashboard.refetch();
+    controls.refetch();
+    policies.refetch();
+    evidence.refetch();
+  };
 
   return (
     <div>
       <PageHeader
         title="Auditor Portal"
-        description="Read-only view of controls and supporting evidence. This is a demonstration aid, not an auditor, SOC 2 attestation, or official compliance determination."
-        action={<AuditorExportButton onExported={setExportUrl} />}
+        description="A read-only compliance snapshot for auditors."
+        action={<StatusBadge label="Read-Only View" tone="gray" />}
       />
 
-      {exportUrl && (
-        <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-          Evidence package ready —{" "}
-          <a
-            href={exportUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            open it again
-          </a>
-          .
-        </p>
-      )}
+      <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+        This portal is read-only — no data can be created, edited, or acknowledged from this page.
+        It is a demonstration aid, not an auditor, SOC 2 attestation, legal opinion, or official
+        compliance determination.
+      </div>
 
-      {loading && <LoadingState label="Loading auditor view…" />}
-      {!loading && error && (
-        <ErrorState
-          message={error}
-          onRetry={() => {
-            controls.refetch();
-            evidence.refetch();
-          }}
-        />
-      )}
+      {loading && <LoadingSkeleton variant="cards" count={7} label="Loading auditor summary…" />}
+      {!loading && error && <ErrorState message={error} onRetry={retryAll} />}
 
-      {!loading && !error && (
+      {!loading && !error && dashboard.data && (
         <div className="flex flex-col gap-8">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <SummaryCard
+              label="Total Controls"
+              value={String(totalControlCount(dashboard.data.controlCountsByStatus))}
+            />
+            <SummaryCard
+              label="Passing Controls"
+              value={String(dashboard.data.controlCountsByStatus.compliant ?? 0)}
+            />
+            <SummaryCard
+              label="Warning Controls"
+              value={String(dashboard.data.controlCountsByStatus.at_risk ?? 0)}
+            />
+            <SummaryCard
+              label="Failing Controls"
+              value={String(dashboard.data.controlCountsByStatus.non_compliant ?? 0)}
+            />
+            <SummaryCard label="Evidence Count" value={String(evidence.data?.length ?? 0)} />
+            <SummaryCard
+              label="Policy Completion"
+              value={policies.data ? formatPercentOrDash(policyCompletionPercent(policies.data)) : "—"}
+            />
+            <SummaryCard label="Open Risks" value={String(dashboard.data.openRiskCount)} />
+            <SummaryCard
+              label="Unresolved Offboarding Issues"
+              value={String(dashboard.data.openOffboardingIssueCount)}
+            />
+            <SummaryCard
+              label="Last Connector Sync"
+              value={formatDate(lastConnectorSync(dashboard.data.connectors))}
+            />
+          </div>
+
           <section>
             <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              Controls
+              Control Status
             </h2>
             {(controls.data?.length ?? 0) === 0 ? (
               <EmptyState message="No controls found." />
             ) : (
-              <div className="flex flex-col gap-2">
-                {controls.data!.map((control) => (
-                  <div
-                    key={control.id}
-                    className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                        {control.name}
-                      </p>
-                      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        {control.description}
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        {control.relatedEvidenceIds.length} supporting evidence item(s) ·
-                        last evaluated {formatDate(control.lastEvaluatedAt)}
-                      </p>
-                    </div>
-                    <StatusBadge
-                      label={controlStatusLabel(control.status)}
-                      tone={controlStatusTone(control.status)}
-                    />
-                  </div>
-                ))}
-              </div>
+              <ControlTable controls={controls.data!} />
             )}
           </section>
 
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              Evidence
+          <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              Evidence Package
             </h2>
-            {(evidence.data?.length ?? 0) === 0 ? (
-              <EmptyState message="No evidence found." />
-            ) : (
-              <div className="flex flex-col gap-2">
-                {evidence.data!.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
-                  >
-                    <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                      {item.title}
-                    </span>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {item.provider} · collected {formatDate(item.collectedAt)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="mt-1 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+              The downloaded ZIP contains a manifest of the mock evidence items backing each
+              control above, along with the evidence itself. It is a convenience export for review
+              — it is not an official SOC 2 report or attestation, and generating or downloading it
+              does not certify compliance.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <AuditorExportButton onExported={setExported} />
+              {exported && (
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Downloaded as <span className="font-medium">{exported.filename}</span>.
+                </span>
+              )}
+            </div>
           </section>
         </div>
       )}

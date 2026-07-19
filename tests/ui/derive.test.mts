@@ -2,10 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   controlsRequiringAttention,
+  evidenceResource,
+  filterEmployees,
+  filterEvidence,
+  hasUnresolvedOffboardingIssues,
+  isTerminatedRetainingAccess,
+  openIssuesForSystem,
   policyCompletionPercent,
   recentEvidence,
+  unresolvedOffboardingIssueCount,
 } from "../../src/lib/client/derive.ts";
-import type { Control, Evidence, Policy } from "../../src/lib/contracts/index.ts";
+import type { Control, Employee, Evidence, OffboardingIssue, Policy } from "../../src/lib/contracts/index.ts";
 
 function makePolicy(overrides: Partial<Policy>): Policy {
   return {
@@ -45,6 +52,33 @@ function makeEvidence(overrides: Partial<Evidence>): Evidence {
     collectedAt: "2026-01-01T00:00:00.000Z",
     expiresAt: null,
     metadata: {},
+    ...overrides,
+  };
+}
+
+function makeOffboardingIssue(overrides: Partial<OffboardingIssue>): OffboardingIssue {
+  return {
+    id: "i1",
+    employeeId: "e1",
+    issueType: "access_not_revoked",
+    system: "AWS",
+    detectedAt: "2026-01-01T00:00:00.000Z",
+    resolvedAt: null,
+    status: "open",
+    ...overrides,
+  };
+}
+
+function makeEmployee(overrides: Partial<Employee>): Employee {
+  return {
+    id: "e1",
+    name: "Employee",
+    email: "employee@example.com",
+    source: "gusto",
+    status: "active",
+    startDate: "2025-01-01T00:00:00.000Z",
+    terminationDate: null,
+    offboardingIssues: [],
     ...overrides,
   };
 }
@@ -117,4 +151,115 @@ test("recentEvidence sorts newest first and respects the limit", () => {
     recentEvidence(evidence, 2).map((e) => e.id),
     ["new", "mid"],
   );
+});
+
+test("evidenceResource reads metadata.resource, falling back to a placeholder", () => {
+  assert.equal(evidenceResource(makeEvidence({ metadata: { resource: "arn:aws:s3:::bucket" } })), "arn:aws:s3:::bucket");
+  assert.equal(evidenceResource(makeEvidence({ metadata: {} })), "—");
+});
+
+test("filterEvidence filters by provider, status, and free-text search together", () => {
+  const evidence = [
+    makeEvidence({ id: "e1", provider: "aws", status: "valid", title: "IAM policy export" }),
+    makeEvidence({ id: "e2", provider: "github", status: "expired", title: "Branch protection" }),
+    makeEvidence({ id: "e3", provider: "aws", status: "expired", title: "S3 bucket policy" }),
+  ];
+
+  assert.deepEqual(filterEvidence(evidence, {}).map((e) => e.id), ["e1", "e2", "e3"]);
+  assert.deepEqual(filterEvidence(evidence, { provider: "aws" }).map((e) => e.id), ["e1", "e3"]);
+  assert.deepEqual(filterEvidence(evidence, { status: "expired" }).map((e) => e.id), ["e2", "e3"]);
+  assert.deepEqual(
+    filterEvidence(evidence, { provider: "aws", status: "expired" }).map((e) => e.id),
+    ["e3"],
+  );
+  assert.deepEqual(filterEvidence(evidence, { search: "bucket" }).map((e) => e.id), ["e3"]);
+});
+
+test("filterEvidence search is case-insensitive and matches the resource metadata", () => {
+  const evidence = [makeEvidence({ id: "e1", metadata: { resource: "prod-db-instance" } })];
+  assert.deepEqual(filterEvidence(evidence, { search: "PROD-DB" }).map((e) => e.id), ["e1"]);
+});
+
+test("hasUnresolvedOffboardingIssues checks for at least one open issue", () => {
+  assert.equal(hasUnresolvedOffboardingIssues(makeEmployee({ offboardingIssues: [] })), false);
+  assert.equal(
+    hasUnresolvedOffboardingIssues(
+      makeEmployee({ offboardingIssues: [makeOffboardingIssue({ status: "resolved" })] }),
+    ),
+    false,
+  );
+  assert.equal(
+    hasUnresolvedOffboardingIssues(
+      makeEmployee({ offboardingIssues: [makeOffboardingIssue({ status: "open" })] }),
+    ),
+    true,
+  );
+});
+
+test("isTerminatedRetainingAccess requires both offboarded status and an open issue", () => {
+  const openIssue = makeOffboardingIssue({ status: "open" });
+  assert.equal(
+    isTerminatedRetainingAccess(makeEmployee({ status: "offboarded", offboardingIssues: [openIssue] })),
+    true,
+  );
+  assert.equal(
+    isTerminatedRetainingAccess(makeEmployee({ status: "active", offboardingIssues: [openIssue] })),
+    false,
+    "an active employee with an open issue isn't 'terminated retaining access'",
+  );
+  assert.equal(
+    isTerminatedRetainingAccess(
+      makeEmployee({ status: "offboarded", offboardingIssues: [makeOffboardingIssue({ status: "resolved" })] }),
+    ),
+    false,
+    "a resolved issue doesn't count",
+  );
+});
+
+test("unresolvedOffboardingIssueCount sums open issues across all employees", () => {
+  const employees = [
+    makeEmployee({
+      id: "e1",
+      offboardingIssues: [
+        makeOffboardingIssue({ status: "open" }),
+        makeOffboardingIssue({ status: "resolved" }),
+      ],
+    }),
+    makeEmployee({ id: "e2", offboardingIssues: [makeOffboardingIssue({ status: "open" })] }),
+  ];
+  assert.equal(unresolvedOffboardingIssueCount(employees), 2);
+});
+
+test("openIssuesForSystem matches case-insensitively and excludes resolved issues", () => {
+  const employee = makeEmployee({
+    offboardingIssues: [
+      makeOffboardingIssue({ id: "i1", system: "AWS IAM", status: "open" }),
+      makeOffboardingIssue({ id: "i2", system: "aws", status: "resolved" }),
+      makeOffboardingIssue({ id: "i3", system: "GitHub", status: "open" }),
+    ],
+  });
+  assert.deepEqual(openIssuesForSystem(employee, "aws").map((i) => i.id), ["i1"]);
+  assert.deepEqual(openIssuesForSystem(employee, "github").map((i) => i.id), ["i3"]);
+  assert.deepEqual(openIssuesForSystem(employee, "azure"), []);
+});
+
+test("filterEmployees applies each filter correctly", () => {
+  const employees = [
+    makeEmployee({ id: "active", status: "active" }),
+    makeEmployee({ id: "terminated", status: "offboarded" }),
+    makeEmployee({
+      id: "withIssue",
+      status: "active",
+      offboardingIssues: [makeOffboardingIssue({ status: "open" })],
+    }),
+  ];
+
+  assert.deepEqual(filterEmployees(employees, "all").map((e) => e.id), [
+    "active",
+    "terminated",
+    "withIssue",
+  ]);
+  assert.deepEqual(filterEmployees(employees, "active").map((e) => e.id), ["active", "withIssue"]);
+  assert.deepEqual(filterEmployees(employees, "terminated").map((e) => e.id), ["terminated"]);
+  assert.deepEqual(filterEmployees(employees, "has_issues").map((e) => e.id), ["withIssue"]);
 });

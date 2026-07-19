@@ -3,6 +3,7 @@ import type {
   ControlStatus,
   EvidenceStatus,
   OffboardingIssueStatus,
+  OffboardingIssueType,
   RiskSeverity,
   RiskStatus,
 } from "@/lib/contracts";
@@ -55,6 +56,13 @@ const OFFBOARDING_ISSUE_STATUS_LABELS: Record<OffboardingIssueStatus, string> = 
   resolved: "Resolved",
 };
 
+const OFFBOARDING_ISSUE_TYPE_LABELS: Record<OffboardingIssueType, string> = {
+  access_not_revoked: "Access Not Revoked",
+  device_not_returned: "Device Not Returned",
+  account_still_active: "Account Still Active",
+  other: "Other",
+};
+
 const CONNECTOR_SYNC_STATUS_LABELS: Record<ConnectorSyncStatus, string> = {
   idle: "Idle",
   syncing: "Syncing",
@@ -80,6 +88,10 @@ export function riskStatusLabel(status: RiskStatus): string {
 
 export function offboardingIssueStatusLabel(status: OffboardingIssueStatus): string {
   return OFFBOARDING_ISSUE_STATUS_LABELS[status];
+}
+
+export function offboardingIssueTypeLabel(type: OffboardingIssueType): string {
+  return OFFBOARDING_ISSUE_TYPE_LABELS[type];
 }
 
 export function connectorSyncStatusLabel(status: ConnectorSyncStatus): string {

@@ -8,6 +8,7 @@ import {
   formatDate,
   formatPercent,
   offboardingIssueStatusTone,
+  offboardingIssueTypeLabel,
   riskSeverityTone,
   riskStatusLabel,
 } from "../../src/lib/client/format.ts";
@@ -64,6 +65,13 @@ test("riskSeverityTone escalates from gray to red", () => {
 test("offboardingIssueStatusTone marks open issues red and resolved green", () => {
   assert.equal(offboardingIssueStatusTone("open"), "red");
   assert.equal(offboardingIssueStatusTone("resolved"), "green");
+});
+
+test("offboardingIssueTypeLabel covers every OffboardingIssueType", () => {
+  assert.equal(offboardingIssueTypeLabel("access_not_revoked"), "Access Not Revoked");
+  assert.equal(offboardingIssueTypeLabel("device_not_returned"), "Device Not Returned");
+  assert.equal(offboardingIssueTypeLabel("account_still_active"), "Account Still Active");
+  assert.equal(offboardingIssueTypeLabel("other"), "Other");
 });
 
 test("connectorSyncStatusLabel covers every ConnectorSyncStatus", () => {

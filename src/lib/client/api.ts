@@ -1,4 +1,4 @@
-import { apiRequest } from "./http.ts";
+import { apiRequest } from "./http";
 import type {
   AuditorExportResponse,
   Connector,

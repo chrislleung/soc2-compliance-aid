@@ -1,3 +1,13 @@
+> [!IMPORTANT]
+> This is a historical implementation handoff.
+>
+> It documents the repository state at an earlier development checkpoint.
+> Some statements, API shapes, test limitations, Git status details, and
+> recommended next actions have been superseded.
+>
+> Read the handoff documents in numerical order and treat `HANDOFF3.md`
+> as the authoritative description of the completed backend branch.
+
 # SOC 2 Compliance MVP Backend/Data Layer Handoff
 
 ## 1. Project And Task Objective

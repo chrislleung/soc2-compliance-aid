@@ -1,3 +1,14 @@
+## Final Git Handoff
+
+- Repository: <GitHub repository URL>
+- Branch: `feat/codex-compliance-backend`
+- Pull request: <backend PR URL>
+- Final commit: `<commit SHA>`
+- Target integration branch: `integration/soc2-mvp`
+- Final worktree status: clean
+- Handoff date: <date>
+
+
 # SOC 2 Compliance MVP Handoff 3
 
 ## 1. Scope
@@ -356,3 +367,28 @@ Observed final results:
 2. The "Run demo sync" button should POST `/api/connectors/sync`, then refetch `/api/dashboard`.
 3. Consider adding route-level tests for `GET /api/connectors` if the frontend will consume connector fields directly.
 4. Decide later whether to persist demo sync history into Prisma or intentionally keep it in-memory for the one-day MVP.
+
+## Important Runtime Data Note
+
+The Prisma database is implemented, migratable, and seedable, but the current
+API routes do not query Prisma at request time.
+
+The running MVP uses deterministic in-memory mock data for API reads and writes.
+
+Consequences:
+
+- Creating a risk persists only until the server restarts.
+- Policy acknowledgements persist only until the server restarts.
+- Connector sync history resets when the server restarts.
+- Prisma seed data and runtime API data must not be assumed to be the same
+  persistence layer.
+
+This is intentional for the one-day MVP and should not be refactored during
+integration unless required to fix a demonstrated defect.
+
+## Verified Environment
+
+- Node.js: `v24.11.1`
+- npm: `11.6.2`
+- Next.js: `16.2.10`
+- Prisma Client: `6.19.3`

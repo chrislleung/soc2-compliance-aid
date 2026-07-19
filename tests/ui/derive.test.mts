@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  completionPercent,
   controlsRequiringAttention,
   evidenceResource,
   filterEmployees,
@@ -82,6 +83,12 @@ function makeEmployee(overrides: Partial<Employee>): Employee {
     ...overrides,
   };
 }
+
+test("completionPercent computes a simple ratio and returns null for a zero total", () => {
+  assert.equal(completionPercent(3, 10), 30);
+  assert.equal(completionPercent(0, 0), null);
+  assert.equal(completionPercent(5, 5), 100);
+});
 
 test("policyCompletionPercent weights by employee count, not a flat average", () => {
   const policies = [

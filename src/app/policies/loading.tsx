@@ -1,5 +1,5 @@
-import { LoadingState } from "@/components/LoadingState";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
 export default function Loading() {
-  return <LoadingState label="Loading policies…" />;
+  return <LoadingSkeleton variant="rows" count={5} label="Loading policies…" />;
 }

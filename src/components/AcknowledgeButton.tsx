@@ -4,7 +4,7 @@ import { useState } from "react";
 import { acknowledgePolicy } from "@/lib/client/api";
 import { ApiRequestError } from "@/lib/client/http";
 
-export function PolicyAcknowledgeButton({
+export function AcknowledgeButton({
   policyId,
   employeeId,
   alreadyAcknowledged,
@@ -17,20 +17,23 @@ export function PolicyAcknowledgeButton({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [succeeded, setSucceeded] = useState(false);
 
-  if (alreadyAcknowledged) {
+  if (alreadyAcknowledged || succeeded) {
     return (
-      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+      <span role="status" className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
         Acknowledged
       </span>
     );
   }
 
   const handleClick = async () => {
+    if (pending) return; // belt-and-suspenders against double-submit from rapid double-clicks
     setPending(true);
     setError(null);
     try {
       await acknowledgePolicy(policyId, employeeId);
+      setSucceeded(true);
       onAcknowledged();
     } catch (err) {
       setError(
@@ -53,7 +56,11 @@ export function PolicyAcknowledgeButton({
       >
         {pending ? "Saving…" : "Acknowledge"}
       </button>
-      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+      {error && (
+        <span role="alert" className="text-xs text-red-600 dark:text-red-400">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

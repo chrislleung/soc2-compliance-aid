@@ -1,5 +1,11 @@
 import type { ConnectorProvider, Control, Employee, Evidence, EvidenceStatus, OffboardingIssue, Policy } from "@/lib/contracts";
 
+/** A single count-over-total percentage. Returns null when total is 0, so callers can render "—". */
+export function completionPercent(count: number, total: number): number | null {
+  if (total <= 0) return null;
+  return (count / total) * 100;
+}
+
 /**
  * Overall policy-acknowledgement completion, weighted by employee count
  * across every policy that requires acknowledgement. Returns null when
@@ -13,9 +19,7 @@ export function policyCompletionPercent(policies: Policy[]): number | null {
 
   const totalAcknowledged = relevant.reduce((sum, policy) => sum + policy.acknowledgedCount, 0);
   const totalRequired = relevant.reduce((sum, policy) => sum + policy.totalEmployeeCount, 0);
-  if (totalRequired === 0) return null;
-
-  return (totalAcknowledged / totalRequired) * 100;
+  return completionPercent(totalAcknowledged, totalRequired);
 }
 
 const ATTENTION_STATUSES = new Set<Control["status"]>(["at_risk", "non_compliant"]);

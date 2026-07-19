@@ -14,11 +14,7 @@
 // Enums / literal unions
 // ---------------------------------------------------------------------------
 
-export type ControlStatus =
-  | "compliant"
-  | "at_risk"
-  | "non_compliant"
-  | "not_applicable";
+export type ControlStatus = "pass" | "warning" | "fail";
 
 export type ConnectorProvider = "aws" | "azure" | "github" | "gusto" | "rippling";
 
@@ -46,7 +42,11 @@ export type RiskSeverity = "low" | "medium" | "high" | "critical";
 
 export type RiskStatus = "open" | "mitigated" | "accepted" | "closed";
 
-export type ConnectorSyncStatus = "idle" | "syncing" | "success" | "error";
+export type ConnectorConnectionStatus = "connected" | "disconnected";
+
+export type ConnectorLastSyncStatus = "never_run" | "running" | "success" | "error";
+
+export type SyncResultStatus = "running" | "success" | "error";
 
 // ---------------------------------------------------------------------------
 // Core entities
@@ -131,29 +131,57 @@ export interface Connector {
   id: string;
   provider: ConnectorProvider;
   displayName: string;
-  status: ConnectorSyncStatus;
+  connectionStatus: ConnectorConnectionStatus;
+  lastSyncStatus: ConnectorLastSyncStatus;
   lastSyncedAt: string | null; // ISO 8601
+  lastError: string | null;
   lastSyncResult: SyncResult | null;
 }
 
 export interface SyncResult {
   connectorId: string;
   provider: ConnectorProvider;
-  status: ConnectorSyncStatus;
+  status: SyncResultStatus;
   startedAt: string; // ISO 8601
   finishedAt: string | null; // ISO 8601
   recordsProcessed: number;
   errors: string[];
 }
 
+export interface DashboardControlCounts {
+  total: number;
+  pass: number;
+  warning: number;
+  fail: number;
+}
+
+export interface DashboardPolicyMetrics {
+  completionPercentage: number;
+  employeesWithPendingPolicies: number;
+  totalMissingAcknowledgements: number;
+}
+
+export interface DashboardConnectorSummary {
+  id: string;
+  provider: ConnectorProvider;
+  displayName: string;
+  connectionStatus: ConnectorConnectionStatus;
+  lastSyncStatus: ConnectorLastSyncStatus;
+  lastSyncedAt: string | null; // ISO 8601
+  lastError: string | null;
+}
+
 export interface DashboardSummary {
   generatedAt: string; // ISO 8601
+  lastDataRefreshAt?: string; // ISO 8601
   overallCompliancePercent: number;
-  controlCountsByStatus: Record<ControlStatus, number>;
+  controlCounts: DashboardControlCounts;
   openRiskCount: number;
   openOffboardingIssueCount: number;
-  pendingPolicyAcknowledgementCount: number;
-  connectors: Connector[];
+  policyMetrics: DashboardPolicyMetrics;
+  connectors: DashboardConnectorSummary[];
+  recentEvidence: Evidence[];
+  unresolvedOffboardingIssues: OffboardingIssue[];
 }
 
 // ---------------------------------------------------------------------------
@@ -254,6 +282,6 @@ export interface ApiRouteMap {
     response: SyncResult;
   };
   "GET /api/auditor/export": {
-    response: AuditorExportResponse;
+    response: Blob;
   };
 }

@@ -1,5 +1,5 @@
-import { LoadingState } from "@/components/LoadingState";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
 export default function Loading() {
-  return <LoadingState label="Loading dashboard…" />;
+  return <LoadingSkeleton variant="cards" count={6} label="Loading dashboard…" />;
 }

@@ -7,11 +7,20 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   gray: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
 };
 
+// Icons (not just color) distinguish tones for colorblind users and non-color contexts.
+const TONE_ICONS: Record<BadgeTone, string> = {
+  green: "✓", // check mark
+  yellow: "⚠", // warning triangle
+  red: "✕", // cross
+  gray: "–", // en dash
+};
+
 export function StatusBadge({ label, tone }: { label: string; tone: BadgeTone }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}
     >
+      <span aria-hidden="true">{TONE_ICONS[tone]}</span>
       {label}
     </span>
   );

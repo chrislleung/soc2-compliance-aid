@@ -47,7 +47,7 @@ On failure, every route responds with a non-2xx status and an `ApiErrorBody`:
 - **`EvidenceStatus`**: `valid` · `expiring` · `expired`
 - **`EmployeeStatus`**: `active` · `offboarding` · `offboarded`
 - **`OffboardingIssueType`**: `access_not_revoked` · `device_not_returned` · `account_still_active` · `other`
-- **`RiskSeverity`**: `low` · `medium` · `high` · `critical` (derived from likelihood × impact)
+- **`RiskLikelihood`** / **`RiskImpact`**: integers `1`–`5` (1 = rare/negligible, 5 = near-certain/severe)
 - **`RiskStatus`**: `open` · `mitigated` · `accepted` · `closed`
 - **`ConnectorSyncStatus`**: `idle` · `syncing` · `success` · `error`
 
@@ -66,8 +66,12 @@ Summarized here; see the TypeScript file for exact field types.
   any open offboarding issues (e.g. access not revoked after termination).
 - **`Policy`** — a company policy with acknowledgement tracking (count of
   employees who have acknowledged it, and whether the current viewer has).
-- **`Risk`** — a risk assessment entry: likelihood, impact, derived
-  severity, status, owner, and optional mitigation plan.
+- **`Risk`** — a risk assessment entry: likelihood (1–5), impact (1–5),
+  status, owner, and optional mitigation plan. There is no stored
+  "severity" or "score" field — the frontend computes a display-only
+  score as `likelihood * impact` (range 1–25). This is a simple
+  heuristic, not an official SOC 2 risk-scoring methodology, and the
+  backend does not need to compute, store, or return it.
 - **`Connector`** — the sync state of one mock integration (AWS/Azure/
   GitHub/Gusto/Rippling), including its most recent `SyncResult`.
 - **`AuditorExportResponse`** — a downloadable evidence package: a

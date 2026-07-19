@@ -1,4 +1,4 @@
-import type { ConnectorProvider, Control, Employee, Evidence, EvidenceStatus, OffboardingIssue, Policy } from "@/lib/contracts";
+import type { ConnectorProvider, Control, Employee, Evidence, EvidenceStatus, OffboardingIssue, Policy, RiskImpact, RiskLikelihood } from "@/lib/contracts";
 
 /** A single count-over-total percentage. Returns null when total is 0, so callers can render "—". */
 export function completionPercent(count: number, total: number): number | null {
@@ -122,4 +122,30 @@ export function filterEmployees(employees: Employee[], filter: EmployeeFilter): 
     default:
       return employees;
   }
+}
+
+/**
+ * Display-only risk score: likelihood * impact, range 1-25. This is a
+ * simple heuristic for sorting/highlighting risks, not an official SOC 2
+ * risk-scoring methodology — never label it as one in the UI.
+ */
+export function riskScore(likelihood: RiskLikelihood, impact: RiskImpact): number {
+  return likelihood * impact;
+}
+
+export interface RiskFormValues {
+  title: string;
+  description: string;
+  owner: string;
+}
+
+export type RiskFormErrors = Partial<Record<keyof RiskFormValues, string>>;
+
+/** Client-side required-field validation for the new-risk form. */
+export function validateRiskForm(values: RiskFormValues): RiskFormErrors {
+  const errors: RiskFormErrors = {};
+  if (!values.title.trim()) errors.title = "Title is required.";
+  if (!values.description.trim()) errors.description = "Description is required.";
+  if (!values.owner.trim()) errors.owner = "Owner is required.";
+  return errors;
 }

@@ -4,7 +4,6 @@ import type {
   EvidenceStatus,
   OffboardingIssueStatus,
   OffboardingIssueType,
-  RiskSeverity,
   RiskStatus,
 } from "@/lib/contracts";
 
@@ -35,13 +34,6 @@ const EVIDENCE_STATUS_LABELS: Record<EvidenceStatus, string> = {
   valid: "Valid",
   expiring: "Expiring Soon",
   expired: "Expired",
-};
-
-const RISK_SEVERITY_LABELS: Record<RiskSeverity, string> = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  critical: "Critical",
 };
 
 const RISK_STATUS_LABELS: Record<RiskStatus, string> = {
@@ -76,10 +68,6 @@ export function controlStatusLabel(status: ControlStatus): string {
 
 export function evidenceStatusLabel(status: EvidenceStatus): string {
   return EVIDENCE_STATUS_LABELS[status];
-}
-
-export function riskSeverityLabel(severity: RiskSeverity): string {
-  return RISK_SEVERITY_LABELS[severity];
 }
 
 export function riskStatusLabel(status: RiskStatus): string {
@@ -120,19 +108,6 @@ export function evidenceStatusTone(status: EvidenceStatus): BadgeTone {
     case "expiring":
       return "yellow";
     case "expired":
-      return "red";
-  }
-}
-
-export function riskSeverityTone(severity: RiskSeverity): BadgeTone {
-  switch (severity) {
-    case "low":
-      return "gray";
-    case "medium":
-      return "yellow";
-    case "high":
-      return "red";
-    case "critical":
       return "red";
   }
 }

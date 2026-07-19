@@ -9,7 +9,6 @@ import {
   formatPercent,
   offboardingIssueStatusTone,
   offboardingIssueTypeLabel,
-  riskSeverityTone,
   riskStatusLabel,
 } from "../../src/lib/client/format.ts";
 
@@ -53,13 +52,6 @@ test("riskStatusLabel covers every RiskStatus", () => {
   assert.equal(riskStatusLabel("mitigated"), "Mitigated");
   assert.equal(riskStatusLabel("accepted"), "Accepted");
   assert.equal(riskStatusLabel("closed"), "Closed");
-});
-
-test("riskSeverityTone escalates from gray to red", () => {
-  assert.equal(riskSeverityTone("low"), "gray");
-  assert.equal(riskSeverityTone("medium"), "yellow");
-  assert.equal(riskSeverityTone("high"), "red");
-  assert.equal(riskSeverityTone("critical"), "red");
 });
 
 test("offboardingIssueStatusTone marks open issues red and resolved green", () => {

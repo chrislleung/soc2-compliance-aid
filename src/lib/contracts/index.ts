@@ -38,11 +38,13 @@ export type OffboardingIssueStatus = "open" | "resolved";
 
 export type PolicyAcknowledgementStatus = "acknowledged" | "pending";
 
-export type RiskLikelihood = "low" | "medium" | "high";
+// 1 (rare/negligible) to 5 (near-certain/severe). There is no "severity"
+// field — a risk's score is likelihood * impact, computed by the
+// frontend for display only. It is not an official SOC 2 scoring
+// methodology; see docs/MVP_CONTRACT.md.
+export type RiskLikelihood = 1 | 2 | 3 | 4 | 5;
 
-export type RiskImpact = "low" | "medium" | "high";
-
-export type RiskSeverity = "low" | "medium" | "high" | "critical";
+export type RiskImpact = 1 | 2 | 3 | 4 | 5;
 
 export type RiskStatus = "open" | "mitigated" | "accepted" | "closed";
 
@@ -119,7 +121,6 @@ export interface Risk {
   category: string;
   likelihood: RiskLikelihood;
   impact: RiskImpact;
-  severity: RiskSeverity;
   status: RiskStatus;
   owner: string;
   mitigationPlan: string | null;
@@ -170,6 +171,7 @@ export interface CreateRiskRequest {
   category: string;
   likelihood: RiskLikelihood;
   impact: RiskImpact;
+  status: RiskStatus;
   owner: string;
   mitigationPlan?: string;
 }

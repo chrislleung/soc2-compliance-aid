@@ -52,8 +52,9 @@ test("createRisk POSTs the risk payload to /api/risks", async (t) => {
     title: "t",
     description: "d",
     category: "c",
-    likelihood: "low" as const,
-    impact: "low" as const,
+    likelihood: 2 as const,
+    impact: 4 as const,
+    status: "open" as const,
     owner: "o",
   };
   const calls = mockJsonFetch(t, { id: "r1", ...body });

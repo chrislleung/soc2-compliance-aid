@@ -11,7 +11,9 @@ import {
   openIssuesForSystem,
   policyCompletionPercent,
   recentEvidence,
+  riskScore,
   unresolvedOffboardingIssueCount,
+  validateRiskForm,
 } from "../../src/lib/client/derive.ts";
 import type { Control, Employee, Evidence, OffboardingIssue, Policy } from "../../src/lib/contracts/index.ts";
 
@@ -269,4 +271,24 @@ test("filterEmployees applies each filter correctly", () => {
   assert.deepEqual(filterEmployees(employees, "active").map((e) => e.id), ["active", "withIssue"]);
   assert.deepEqual(filterEmployees(employees, "terminated").map((e) => e.id), ["terminated"]);
   assert.deepEqual(filterEmployees(employees, "has_issues").map((e) => e.id), ["withIssue"]);
+});
+
+test("riskScore multiplies likelihood by impact", () => {
+  assert.equal(riskScore(1, 1), 1);
+  assert.equal(riskScore(5, 5), 25);
+  assert.equal(riskScore(3, 4), 12);
+});
+
+test("validateRiskForm flags each required field independently", () => {
+  assert.deepEqual(validateRiskForm({ title: "", description: "", owner: "" }), {
+    title: "Title is required.",
+    description: "Description is required.",
+    owner: "Owner is required.",
+  });
+  assert.deepEqual(
+    validateRiskForm({ title: "  ", description: "d", owner: "o" }),
+    { title: "Title is required." },
+    "whitespace-only input counts as empty",
+  );
+  assert.deepEqual(validateRiskForm({ title: "t", description: "d", owner: "o" }), {});
 });
